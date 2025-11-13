@@ -1,0 +1,98 @@
+-- Esquema de Banco de Dados para E-commerce (PostgreSQL/MySQL)
+
+-- Tabela de Clientes
+CREATE TABLE Clientes (
+    cliente_id SERIAL PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    senha_hash VARCHAR(255) NOT NULL,
+    data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela de Endereços
+CREATE TABLE Enderecos (
+    endereco_id SERIAL PRIMARY KEY,
+    cliente_id INT NOT NULL,
+    rua VARCHAR(255) NOT NULL,
+    cidade VARCHAR(100) NOT NULL,
+    estado CHAR(2) NOT NULL,
+    cep VARCHAR(10) NOT NULL,
+    tipo_endereco VARCHAR(50) NOT NULL, -- Ex: 'Entrega', 'Cobrança'
+    FOREIGN KEY (cliente_id) REFERENCES Clientes(cliente_id)
+);
+
+-- Tabela de Categorias de Produtos
+CREATE TABLE Categorias (
+    categoria_id SERIAL PRIMARY KEY,
+    nome VARCHAR(100) UNIQUE NOT NULL
+);
+
+-- Tabela de Produtos
+CREATE TABLE Produtos (
+    produto_id SERIAL PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    descricao TEXT,
+    preco DECIMAL(10, 2) NOT NULL,
+    estoque INT NOT NULL,
+    categoria_id INT NOT NULL,
+    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (categoria_id) REFERENCES Categorias(categoria_id)
+);
+
+-- Tabela de Pedidos
+CREATE TABLE Pedidos (
+    pedido_id SERIAL PRIMARY KEY,
+    cliente_id INT NOT NULL,
+    data_pedido TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status_pedido VARCHAR(50) NOT NULL, -- Ex: 'Pendente', 'Processando', 'Enviado', 'Entregue', 'Cancelado'
+    total DECIMAL(10, 2) NOT NULL,
+    endereco_entrega_id INT,
+    FOREIGN KEY (cliente_id) REFERENCES Clientes(cliente_id),
+    FOREIGN KEY (endereco_entrega_id) REFERENCES Enderecos(endereco_id)
+);
+
+-- Tabela de Itens do Pedido (Muitos-para-Muitos entre Pedidos e Produtos)
+CREATE TABLE ItensPedido (
+    item_pedido_id SERIAL PRIMARY KEY,
+    pedido_id INT NOT NULL,
+    produto_id INT NOT NULL,
+    quantidade INT NOT NULL,
+    preco_unitario DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (pedido_id) REFERENCES Pedidos(pedido_id),
+    FOREIGN KEY (produto_id) REFERENCES Produtos(produto_id),
+    UNIQUE (pedido_id, produto_id) -- Garante que um produto só aparece uma vez por pedido
+);
+
+-- Tabela de Avaliações de Produtos
+CREATE TABLE Avaliacoes (
+    avaliacao_id SERIAL PRIMARY KEY,
+    produto_id INT NOT NULL,
+    cliente_id INT NOT NULL,
+    nota INT CHECK (nota >= 1 AND nota <= 5) NOT NULL,
+    comentario TEXT,
+    data_avaliacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (produto_id) REFERENCES Produtos(produto_id),
+    FOREIGN KEY (cliente_id) REFERENCES Clientes(cliente_id),
+    UNIQUE (produto_id, cliente_id) -- Um cliente só pode avaliar um produto uma vez
+);
+
+-- Tabela de Pagamentos (para rastrear transações)
+CREATE TABLE Pagamentos (
+    pagamento_id SERIAL PRIMARY KEY,
+    pedido_id INT NOT NULL,
+    metodo_pagamento VARCHAR(50) NOT NULL, -- Ex: 'Cartão de Crédito', 'Boleto', 'PIX'
+    status_pagamento VARCHAR(50) NOT NULL, -- Ex: 'Pendente', 'Aprovado', 'Recusado'
+    valor DECIMAL(10, 2) NOT NULL,
+    data_pagamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (pedido_id) REFERENCES Pedidos(pedido_id)
+);
+
+-- Tabela de Logs de Estoque (para auditoria)
+CREATE TABLE LogsEstoque (
+    log_id SERIAL PRIMARY KEY,
+    produto_id INT NOT NULL,
+    tipo_movimentacao VARCHAR(50) NOT NULL, -- Ex: 'Entrada', 'Saída', 'Ajuste'
+    quantidade_movimentada INT NOT NULL,
+    data_movimentacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (produto_id) REFERENCES Produtos(produto_id)
+);
