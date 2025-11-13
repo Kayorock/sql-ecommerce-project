@@ -1,0 +1,126 @@
+-- Exemplos de Consultas SQL (Diferentes Níveis de Complexidade)
+
+-- Nível 1: Consultas Básicas (SELECT, WHERE, ORDER BY)
+-- 1.1. Selecionar todos os produtos com estoque abaixo de 50 unidades.
+SELECT nome, preco, estoque
+FROM Produtos
+WHERE estoque < 50
+ORDER BY estoque DESC;
+
+-- 1.2. Selecionar o nome e email de todos os clientes cadastrados após uma data específica (ex: '2023-01-01').
+SELECT nome, email, data_cadastro
+FROM Clientes
+WHERE data_cadastro > '2023-01-01';
+
+-- Nível 2: JOINs e Agregação (GROUP BY, HAVING)
+-- 2.1. Listar todos os pedidos, mostrando o nome do cliente e o status do pedido.
+SELECT
+    P.pedido_id,
+    C.nome AS nome_cliente,
+    P.data_pedido,
+    P.status_pedido,
+    P.total
+FROM Pedidos P
+JOIN Clientes C ON P.cliente_id = C.cliente_id
+ORDER BY P.data_pedido DESC;
+
+-- 2.2. Calcular o valor total de vendas por categoria de produto.
+SELECT
+    CA.nome AS categoria,
+    SUM(IP.preco_unitario * IP.quantidade) AS total_vendas
+FROM ItensPedido IP
+JOIN Produtos PR ON IP.produto_id = PR.produto_id
+JOIN Categorias CA ON PR.categoria_id = CA.categoria_id
+GROUP BY CA.nome
+ORDER BY total_vendas DESC;
+
+-- 2.3. Encontrar clientes que fizeram mais de 1 pedido.
+SELECT
+    C.nome,
+    C.email,
+    COUNT(P.pedido_id) AS total_pedidos
+FROM Clientes C
+JOIN Pedidos P ON C.cliente_id = P.cliente_id
+GROUP BY C.cliente_id, C.nome, C.email
+HAVING COUNT(P.pedido_id) > 1
+ORDER BY total_pedidos DESC;
+
+-- Nível 3: Subconsultas e CTEs (Common Table Expressions)
+-- 3.1. Encontrar o produto mais caro em cada categoria (usando Subconsulta).
+SELECT
+    P.nome AS produto,
+    P.preco,
+    CA.nome AS categoria
+FROM Produtos P
+JOIN Categorias CA ON P.categoria_id = CA.categoria_id
+WHERE P.preco = (
+    SELECT MAX(preco)
+    FROM Produtos
+    WHERE categoria_id = P.categoria_id
+);
+
+-- 3.2. Calcular a média de preço dos produtos e listar os produtos que estão acima dessa média (usando CTE).
+WITH MediaPreco AS (
+    SELECT AVG(preco) AS preco_medio
+    FROM Produtos
+)
+SELECT
+    P.nome,
+    P.preco
+FROM Produtos P, MediaPreco MP
+WHERE P.preco > MP.preco_medio
+ORDER BY P.preco DESC;
+
+-- Nível 4: Funções de Janela (Window Functions)
+-- 4.1. Classificar os produtos por preço dentro de suas respectivas categorias.
+SELECT
+    P.nome AS produto,
+    CA.nome AS categoria,
+    P.preco,
+    RANK() OVER (PARTITION BY CA.nome ORDER BY P.preco DESC) AS rank_preco_categoria
+FROM Produtos P
+JOIN Categorias CA ON P.categoria_id = CA.categoria_id
+ORDER BY categoria, rank_preco_categoria;
+
+-- 4.2. Calcular a média de avaliação de cada produto e a média geral de avaliações.
+SELECT
+    P.nome AS produto,
+    AVG(A.nota) AS media_avaliacao_produto,
+    AVG(AVG(A.nota)) OVER () AS media_avaliacao_geral
+FROM Produtos P
+JOIN Avaliacoes A ON P.produto_id = A.produto_id
+GROUP BY P.produto_id, P.nome
+ORDER BY media_avaliacao_produto DESC;
+
+-- Nível 5: Transações e Otimização (Exemplo de Stored Procedure/Função - Conceitual)
+-- 5.1. Exemplo de Transação para processar um novo pedido (Conceitual, dependente do SGBD)
+/*
+BEGIN TRANSACTION;
+
+-- 1. Inserir na tabela Pedidos
+INSERT INTO Pedidos (cliente_id, status_pedido, total, endereco_entrega_id)
+VALUES (1, 'Processando', 100.00, 1)
+RETURNING pedido_id INTO @novo_pedido_id;
+
+-- 2. Inserir na tabela ItensPedido
+INSERT INTO ItensPedido (pedido_id, produto_id, quantidade, preco_unitario)
+VALUES (@novo_pedido_id, 1, 1, 100.00);
+
+-- 3. Atualizar o estoque
+UPDATE Produtos
+SET estoque = estoque - 1
+WHERE produto_id = 1;
+
+-- 4. Inserir Log de Estoque
+INSERT INTO LogsEstoque (produto_id, tipo_movimentacao, quantidade_movimentada)
+VALUES (1, 'Saída', -1);
+
+COMMIT;
+*/
+
+-- 5.2. Exemplo de Criação de Índice para Otimização de Consultas
+-- Índice na coluna 'email' da tabela 'Clientes' para buscas rápidas de login
+CREATE UNIQUE INDEX idx_clientes_email ON Clientes (email);
+
+-- Índice na coluna 'status_pedido' da tabela 'Pedidos' para consultas frequentes de status
+CREATE INDEX idx_pedidos_status ON Pedidos (status_pedido);
