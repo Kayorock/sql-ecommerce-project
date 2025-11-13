@@ -1,0 +1,130 @@
+#include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
+
+typedef struct {
+    int ano;
+    int mes;
+    int dia;
+} Data;
+
+typedef struct {
+    int ano;
+    int mes;
+    int dia;
+    int hora;
+    int minuto;
+    int segundo;
+} DataHora;
+
+typedef struct {
+    int id_colaborador;
+    char nome_completo[100];
+    char email_corporativo[100];
+    char departamento[50];
+    char cargo[50];
+    Data data_admissao;
+    char nivel_acesso[20];
+    bool status_conta;
+} Colaborador;
+
+typedef struct {
+    int id_checkin;
+    int id_colaborador;
+    DataHora data_hora;
+    int nivel_estresse;
+    int nivel_engajamento;
+    char sentimento_predominante[30];
+    float horas_sono_ultimas_24h;
+    float risco_burnout_score;
+} CheckinBemEstar;
+
+typedef struct {
+    int id_sessao;
+    int id_colaborador;
+    char tipo_suporte[30];
+    DataHora data_hora_inicio;
+    DataHora data_hora_fim;
+    int duracao_minutos;
+    int feedback_satisfacao;
+    char id_recurso_externo[50];
+} SessaoSuporte;
+
+void imprimir_colaborador(Colaborador c) {
+    printf("--- Colaborador ---\n");
+    printf("ID: %d\n", c.id_colaborador);
+    printf("Nome: %s\n", c.nome_completo);
+    printf("Email: %s\n", c.email_corporativo);
+    printf("Departamento: %s\n", c.departamento);
+    printf("Cargo: %s\n", c.cargo);
+    printf("Admissao: %d/%d/%d\n", c.data_admissao.dia, c.data_admissao.mes, c.data_admissao.ano);
+    printf("Nivel Acesso: %s\n", c.nivel_acesso);
+    printf("Conta Ativa: %s\n", c.status_conta ? "Sim" : "Nao");
+}
+
+void imprimir_checkin(CheckinBemEstar c) {
+    printf("--- Check-in de Bem-Estar ---\n");
+    printf("ID Check-in: %d\n", c.id_checkin);
+    printf("ID Colaborador: %d\n", c.id_colaborador);
+    printf("Data/Hora: %d/%d/%d %d:%d:%d\n", c.data_hora.dia, c.data_hora.mes, c.data_hora.ano, c.data_hora.hora, c.data_hora.minuto, c.data_hora.segundo);
+    printf("Nivel Estresse: %d/10\n", c.nivel_estresse);
+    printf("Nivel Engajamento: %d/10\n", c.nivel_engajamento);
+    printf("Sentimento: %s\n", c.sentimento_predominante);
+    printf("Horas Sono: %.1f\n", c.horas_sono_ultimas_24h);
+    printf("Risco Burnout: %.2f\n", c.risco_burnout_score);
+}
+
+void imprimir_sessao(SessaoSuporte s) {
+    printf("--- Sessao de Suporte ---\n");
+    printf("ID Sessao: %d\n", s.id_sessao);
+    printf("ID Colaborador: %d\n", s.id_colaborador);
+    printf("Tipo Suporte: %s\n", s.tipo_suporte);
+    printf("Inicio: %d/%d/%d %d:%d:%d\n", s.data_hora_inicio.dia, s.data_hora_inicio.mes, s.data_hora_inicio.ano, s.data_hora_inicio.hora, s.data_hora_inicio.minuto, s.data_hora_inicio.segundo);
+    printf("Fim: %d/%d/%d %d:%d:%d\n", s.data_hora_fim.dia, s.data_hora_fim.mes, s.data_hora_fim.ano, s.data_hora_fim.hora, s.data_hora_fim.minuto, s.data_hora_fim.segundo);
+    printf("Duracao (min): %d\n", s.duracao_minutos);
+    printf("Satisfacao (1-5): %d\n", s.feedback_satisfacao);
+    printf("ID Recurso Externo: %s\n", s.id_recurso_externo);
+}
+
+int main() {
+    Colaborador c1 = {
+        101,
+        "Ana Silva",
+        "ana.silva@empresa.com",
+        "Marketing",
+        "Analista Senior",
+        {15, 5, 2020},
+        "Colaborador",
+        true
+    };
+
+    CheckinBemEstar ce1 = {
+        5001,
+        101,
+        {12, 11, 2025, 9, 30, 0},
+        7,
+        4,
+        "Estressado",
+        5.5,
+        0.65
+    };
+
+    SessaoSuporte ss1 = {
+        9001,
+        101,
+        "Terapia",
+        {12, 11, 2025, 14, 0, 0},
+        {12, 11, 2025, 15, 0, 0},
+        60,
+        5,
+        "Terapeuta_Maria_Ramos_ID_45"
+    };
+
+    imprimir_colaborador(c1);
+    printf("\n");
+    imprimir_checkin(ce1);
+    printf("\n");
+    imprimir_sessao(ss1);
+
+    return 0;
+}
