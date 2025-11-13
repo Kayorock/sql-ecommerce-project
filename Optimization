@@ -1,0 +1,94 @@
+-- Exemplos de Otimização e Performance
+
+-- 1. Criação de Índices Estratégicos
+-- Índices são cruciais para acelerar consultas WHERE, JOINs e ORDER BY.
+
+-- 1.1. Índice para buscas rápidas de clientes por email (já incluído no schema.sql, mas reforçando a importância)
+-- CREATE UNIQUE INDEX idx_clientes_email ON Clientes (email);
+
+-- 1.2. Índice para otimizar buscas por produtos em uma categoria específica e ordenação por preço.
+-- Útil para páginas de listagem de produtos.
+CREATE INDEX idx_produtos_categoria_preco ON Produtos (categoria_id, preco);
+
+-- 1.3. Índice composto para otimizar a busca de itens de um pedido específico.
+-- Útil para carregar rapidamente os detalhes de um pedido.
+CREATE INDEX idx_itenspedido_pedido_produto ON ItensPedido (pedido_id, produto_id);
+
+-- 1.4. Índice para otimizar consultas de status de pedidos (ex: "Quais pedidos estão 'Processando'?")
+-- CREATE INDEX idx_pedidos_status ON Pedidos (status_pedido);
+
+-- 2. Exemplo de Stored Procedure (Conceitual - PostgreSQL/PL/pgSQL)
+-- Stored Procedures (ou Funções) são usadas para encapsular lógica de negócios complexa
+-- e reduzir a latência de rede, executando a lógica diretamente no servidor de banco de dados.
+
+/*
+-- Função para processar um novo pedido de forma transacional
+CREATE OR REPLACE FUNCTION processar_novo_pedido(
+    p_cliente_id INT,
+    p_endereco_entrega_id INT,
+    p_itens JSONB -- Exemplo: [{"produto_id": 1, "quantidade": 1, "preco_unitario": 2500.00}, ...]
+)
+RETURNS INT AS $$
+DECLARE
+    v_pedido_id INT;
+    v_total DECIMAL(10, 2) := 0;
+    item JSONB;
+BEGIN
+    -- 1. Calcular o total do pedido
+    SELECT SUM((item->>'quantidade')::INT * (item->>'preco_unitario')::DECIMAL)
+    INTO v_total
+    FROM jsonb_array_elements(p_itens) AS item;
+
+    -- 2. Inserir na tabela Pedidos
+    INSERT INTO Pedidos (cliente_id, status_pedido, total, endereco_entrega_id)
+    VALUES (p_cliente_id, 'Processando', v_total, p_endereco_entrega_id)
+    RETURNING pedido_id INTO v_pedido_id;
+
+    -- 3. Inserir na tabela ItensPedido e atualizar estoque
+    FOR item IN SELECT * FROM jsonb_array_elements(p_itens)
+    LOOP
+        -- Inserir Item do Pedido
+        INSERT INTO ItensPedido (pedido_id, produto_id, quantidade, preco_unitario)
+        VALUES (v_pedido_id, (item->>'produto_id')::INT, (item->>'quantidade')::INT, (item->>'preco_unitario')::DECIMAL);
+
+        -- Atualizar o estoque
+        UPDATE Produtos
+        SET estoque = estoque - (item->>'quantidade')::INT
+        WHERE produto_id = (item->>'produto_id')::INT;
+
+        -- Inserir Log de Estoque
+        INSERT INTO LogsEstoque (produto_id, tipo_movimentacao, quantidade_movimentada)
+        VALUES ((item->>'produto_id')::INT, 'Saída', -(item->>'quantidade')::INT);
+    END LOOP;
+
+    -- 4. Inserir Pagamento (Exemplo simplificado)
+    INSERT INTO Pagamentos (pedido_id, metodo_pagamento, status_pagamento, valor)
+    VALUES (v_pedido_id, 'Aguardando', 'Pendente', v_total);
+
+    RETURN v_pedido_id;
+END;
+$$ LANGUAGE plpgsql;
+*/
+
+-- 3. Exemplo de View (Visão)
+-- Views simplificam consultas complexas e podem ser usadas para segurança (ocultando colunas).
+
+-- View para mostrar o histórico de pedidos com detalhes do cliente e total
+CREATE VIEW HistoricoPedidosDetalhado AS
+SELECT
+    P.pedido_id,
+    C.nome AS nome_cliente,
+    C.email AS email_cliente,
+    P.data_pedido,
+    P.status_pedido,
+    P.total,
+    E.rua || ', ' || E.cidade || ' - ' || E.estado AS endereco_entrega
+FROM Pedidos P
+JOIN Clientes C ON P.cliente_id = C.cliente_id
+LEFT JOIN Enderecos E ON P.endereco_entrega_id = E.endereco_id;
+
+-- Exemplo de uso da View
+SELECT *
+FROM HistoricoPedidosDetalhado
+WHERE status_pedido = 'Entregue'
+ORDER BY data_pedido DESC;
