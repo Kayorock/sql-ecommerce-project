@@ -1,0 +1,91 @@
+erDiagram
+    Clientes ||--o{ Enderecos : possui
+    Clientes ||--o{ Pedidos : faz
+    Clientes ||--o{ Avaliacoes : escreve
+    
+    Enderecos ||--o{ Pedidos : usado_para_entrega
+    
+    Categorias ||--o{ Produtos : pertence_a
+    
+    Produtos ||--o{ ItensPedido : contem
+    Produtos ||--o{ Avaliacoes : tem
+    Produtos ||--o{ LogsEstoque : tem
+    
+    Pedidos ||--o{ ItensPedido : contem
+    Pedidos ||--o{ Pagamentos : tem
+    
+    Clientes {
+        int cliente_id PK
+        varchar nome
+        varchar email
+        varchar senha_hash
+        timestamp data_cadastro
+    }
+    
+    Enderecos {
+        int endereco_id PK
+        int cliente_id FK
+        varchar rua
+        varchar cidade
+        char estado
+        varchar cep
+        varchar tipo_endereco
+    }
+    
+    Categorias {
+        int categoria_id PK
+        varchar nome
+    }
+    
+    Produtos {
+        int produto_id PK
+        varchar nome
+        text descricao
+        decimal preco
+        int estoque
+        int categoria_id FK
+        timestamp data_criacao
+    }
+    
+    Pedidos {
+        int pedido_id PK
+        int cliente_id FK
+        timestamp data_pedido
+        varchar status_pedido
+        decimal total
+        int endereco_entrega_id FK
+    }
+    
+    ItensPedido {
+        int item_pedido_id PK
+        int pedido_id FK
+        int produto_id FK
+        int quantidade
+        decimal preco_unitario
+    }
+    
+    Avaliacoes {
+        int avaliacao_id PK
+        int produto_id FK
+        int cliente_id FK
+        int nota
+        text comentario
+        timestamp data_avaliacao
+    }
+    
+    Pagamentos {
+        int pagamento_id PK
+        int pedido_id FK
+        varchar metodo_pagamento
+        varchar status_pagamento
+        decimal valor
+        timestamp data_pagamento
+    }
+    
+    LogsEstoque {
+        int log_id PK
+        int produto_id FK
+        varchar tipo_movimentacao
+        int quantidade_movimentada
+        timestamp data_movimentacao
+    }
